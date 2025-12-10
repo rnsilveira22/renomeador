@@ -1,0 +1,10 @@
+# Não versionar runtimes
+windows-jdk/
+jdk/
+jre/
+runtime/
+*.msi
+*.exe
+*.zip
+*.tar.gz
+*.7z
