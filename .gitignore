@@ -1,10 +1,85 @@
-# Não versionar runtimes
-windows-jdk/
+# ==========================================
+# Ignorar arquivos de build e IDE
+# ==========================================
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Arquivos de cache do IntelliJ
+out/
+build/
+
+# Maven / Gradle (caso venha usar)
+target/
+.gradle/
+*.class
+
+# ==========================================
+# Ignorar dependências externas
+# ==========================================
+libs/*.zip
+libs/*.tar.gz
+libs/*.tgz
+libs/*.7z
+libs/*.rar
+libs/*.exe
+libs/*.msi
+
+# PDFBox ou outras libs pesadas
+pdfbox/
+pdfbox-*/
+
+# ==========================================
+# Ignorar runtimes e JDKs usados no jpackage
+# ==========================================
 jdk/
 jre/
 runtime/
-*.msi
+windows-jdk/
+windows-runtime/
+linux-runtime/
+macos-runtime/
+
+# todos arquivos grandes de instalação
 *.exe
-*.zip
-*.tar.gz
-*.7z
+*.msi
+*.dmg
+*.pkg
+
+# ==========================================
+# Ignorar artefatos temporários
+# ==========================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# ==========================================
+# Ignorar arquivos específicos do projeto
+# ==========================================
+dist/
+release/
+artifacts/
+renomeador_simples.jar
+renomeador.jar
+
+# ==========================================
+# Sistema operacional
+# ==========================================
+# macOS
+.DS_Store
+
+# Linux
+*.so
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Arquivos sensíveis
+# =========================================
