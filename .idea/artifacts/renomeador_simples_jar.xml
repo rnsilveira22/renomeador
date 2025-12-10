@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="renomeador_simples:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/renomeador_simples_jar</output-path>
+    <root id="archive" name="renomeador_simples.jar">
+      <element id="module-output" name="renomeador" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/pdfbox-app-2.0.35.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
