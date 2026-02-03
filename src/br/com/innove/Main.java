@@ -34,7 +34,11 @@ public class Main {
         JButton btnDestino = new JButton("Selecionar");
 
         JLabel lblTipo = new JLabel("Tipo:");
-        JComboBox<String> comboTipo = new JComboBox<>(new String[]{"NFS"});
+        JComboBox<String> comboTipo = new JComboBox<>(new String[]{
+                "NFS",
+                "CND_ESTADUAL"
+        });
+
 
         gbc.gridx = 0; gbc.gridy = 0; painel.add(lblOrigem, gbc);
         gbc.gridx = 1; painel.add(txtOrigem, gbc);

@@ -66,7 +66,7 @@ public class FileRenamer {
                     }
 
                     atual[0]++;
-                    int percent = total == 0 ? 0 : (int)((atual[0] / (double) total) * 100);
+                    int percent = total == 0 ? 0 : (int) ((atual[0] / (double) total) * 100);
 
                     log.accept("Lendo (" + atual[0] + "/" + total + "): " + file.getFileName());
                     if (progress != null) progress.update(percent);
@@ -154,7 +154,7 @@ public class FileRenamer {
                 return false;
             }
 
-            String novoNome = gerarNome(texto);
+            String novoNome = gerarNome(texto, tipo);
 
             if (novoNome.isEmpty()) {
                 log.accept("Ignorado — não identificado: " + file.getFileName());
@@ -185,18 +185,35 @@ public class FileRenamer {
     // ======================================================
     // IDENTIFICA LAYOUT E EXTRAI
     // ======================================================
-    private static String gerarNome(String texto) {
+    private static String gerarNome(String texto, String tipo) {
 
         texto = texto.toUpperCase();
 
-        int countNome = contarOcorrencias(texto, "NOME / NOME EMPRESARIAL");
+        if ("NFS".equals(tipo)) {
+            int countNome = contarOcorrencias(texto, "NOME / NOME EMPRESARIAL");
+            if (countNome >= 2)
+                return gerarNomeNFS(texto);
+            return "";
+        }
 
-        // tanto Florianópolis quanto São José seguem esse padrão
-        if (countNome >= 2)
-            return gerarNomeGenerico(texto);
+        if ("CND_ESTADUAL".equals(tipo)) {
+            if (
+                    texto.contains("SECRETARIA DE ESTADO DA FAZENDA") &&
+                            (
+                                    texto.contains("CERTIDÃO NEGATIVA") ||
+                                            texto.contains("CERTIDÃO POSITIVA DE DÉBITOS ESTADUAIS COM EFEITO DE NEGATIVA")
+                            )
+            ) {
+                return gerarNomeCndEstadual(texto);
+            }
+
+            return "";
+        }
+
 
         return "";
     }
+
 
     private static int contarOcorrencias(String texto, String termo) {
         int count = 0;
@@ -210,22 +227,22 @@ public class FileRenamer {
     // ======================================================
     // EXTRAÇÃO UNIFICADA (FLORIANÓPOLIS + SÃO JOSÉ)
     // ======================================================
-    private static String gerarNomeGenerico(String texto) {
+    private static String gerarNomeNFS(String texto) {
 
         String prestador = extrairOcorrencia(texto, "NOME / NOME EMPRESARIAL", 1);
-        String tomador   = extrairOcorrencia(texto, "NOME / NOME EMPRESARIAL", 2);
-        String numero    = extrairNumero(texto);
-        String data      = extrairData(texto);
+        String tomador = extrairOcorrencia(texto, "NOME / NOME EMPRESARIAL", 2);
+        String numero = extrairNumero(texto);
+        String data = extrairData(texto);
 
         if (prestador == null || tomador == null || numero == null || data == null)
             return "";
 
         // limpeza
         prestador = limparNome(prestador);
-        tomador   = limparNome(tomador);
+        tomador = limparNome(tomador);
 
         // **AQUI está a melhoria: limpeza robusta do tomador**
-        tomador   = limparTomadorRobusto(tomador);
+        tomador = limparTomadorRobusto(tomador);
 
         return tomador + "_" + prestador + "_NFS_NUM-" + numero + "_" + data;
     }
@@ -332,10 +349,38 @@ public class FileRenamer {
     }
 
 
-
     private static String sanitize(String s) {
         if (s == null) return null;
         // remove caracteres não alfanuméricos e converte espaços para underscore
         return s.replaceAll("[^A-Z0-9]+", "_");
     }
+
+    private static String gerarNomeCndEstadual(String texto) {
+
+        String nome = extrairDadosCND(texto, "NOME (RAZÃO SOCIAL):");
+        String documento = extrairDadosCND(texto, "CNPJ/CPF:");
+        String numero = extrairDadosCND(texto, "NÚMERO DA CERTIDÃO:");
+        String data = extrairDadosCND(texto, "DATA DE EMISSÃO:");
+
+        if (nome == null || numero == null || data == null)
+            return "";
+
+        nome = sanitize(removerAcentos(nome));
+
+        return nome;
+    }
+
+    private static String extrairDadosCND(String texto, String marcador) {
+        String[] linhas = texto.split("\\r?\\n");
+        marcador = marcador.toUpperCase();
+
+        for (String linha : linhas) {
+            String l = linha.toUpperCase().trim();
+            if (l.startsWith(marcador)) {
+                return linha.substring(linha.indexOf(":") + 1).trim();
+            }
+        }
+        return null;
+    }
+
 }
