@@ -64,7 +64,7 @@ macos-runtime/
 dist/
 release/
 artifacts/
-renomeador_simples.jar
+renomeador.jar
 renomeador.jar
 
 # ==========================================

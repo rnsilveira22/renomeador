@@ -2,6 +2,7 @@ package br.com.innove;
 
 import javax.swing.*;
 import java.awt.*;
+import java.net.URL;
 import java.nio.file.*;
 import java.util.Arrays;
 
@@ -17,6 +18,12 @@ public class Main {
     private static void createGUI() {
 
         JFrame frame = new JFrame("Renomeador de Arquivos - Innove Automações");
+        URL iconURL = Main.class.getResource("/resources/icon/renomeador.png");
+        if (iconURL != null) {
+            Image icon = Toolkit.getDefaultToolkit().getImage(iconURL);
+            frame.setIconImage(icon);
+        }
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(900, 600);
         frame.setLayout(new BorderLayout());

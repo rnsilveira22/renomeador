@@ -1,0 +1,31 @@
+<launch4jConfig>
+
+    <!-- Tipo de aplicação: GUI (Swing) -->
+    <headerType>gui</headerType>
+
+    <!-- JAR de entrada -->
+    <jar>renomeador.jar</jar>
+
+    <!-- Nome do executável final -->
+    <outfile>RenomeadorArquivos.exe</outfile>
+
+    <!-- Diretório de trabalho -->
+    <chdir>.</chdir>
+
+    <!-- Prioridade normal -->
+    <priority>normal</priority>
+
+    <!-- Não mostrar console -->
+    <stayAlive>false</stayAlive>
+
+    <!-- Configuração do Java -->
+    <jre>
+        <minVersion>1.8.0</minVersion>
+        <maxVersion>1.8.999</maxVersion>
+        <jdkPreference>preferJre</jdkPreference>
+    </jre>
+
+    <!-- Ícone -->
+    <icon>icon/renomeador.ico</icon>
+
+</launch4jConfig>
