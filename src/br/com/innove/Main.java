@@ -36,7 +36,8 @@ public class Main {
         JLabel lblTipo = new JLabel("Tipo:");
         JComboBox<String> comboTipo = new JComboBox<>(new String[]{
                 "NFS",
-                "CND_ESTADUAL"
+                "CND_ESTADUAL",
+                "FGTS"
         });
 
 
