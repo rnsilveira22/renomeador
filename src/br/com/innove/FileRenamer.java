@@ -33,6 +33,21 @@ public class FileRenamer {
             Pattern.CASE_INSENSITIVE
     );
 
+    private static final Pattern LIMPEZA_TRABALHISTA = Pattern.compile(
+            "\\bCONDOMINIO\\b|" +
+                    "\\bRESIDENCIAL\\b|" +
+                    "\\bEDIFICIO\\b|" +
+                    "\\(MATRIZ E FILIAIS\\)|" +
+                    "\\(MATRIZ E\\)|" +
+                    "FILIAIS\\)",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern TRAB_NOME = Pattern.compile(
+            "NOME\\s*:\\s*([\\s\\S]*?)\\s*CNPJ\\s*:",
+            Pattern.CASE_INSENSITIVE
+    );
+
     private static final Pattern RFB_NOME = Pattern.compile(
             "NOME\\s*:\\s*([\\s\\S]*?)\\s*CNPJ\\s*:",
             Pattern.CASE_INSENSITIVE
@@ -167,13 +182,15 @@ public class FileRenamer {
                 try (PDDocument doc = PDDocument.load(file.toFile())) {
                     PDFTextStripper stripper = new PDFTextStripper();
                     String texto = stripper.getText(doc);
-
-//                    System.out.println("==== TEXTO PDF RFB ====");
-//                    System.out.println(texto);
-//                    System.out.println("======================");
                     novoNome = gerarNomeRfb(texto);
                 }
+            } else if ("CND - Trabalhista".equals(tipo)) {
 
+                    try (PDDocument doc = PDDocument.load(file.toFile())) {
+                        PDFTextStripper stripper = new PDFTextStripper();
+                        String texto = stripper.getText(doc);
+                        novoNome = gerarNomeTrabalhista(texto);
+                    }
             } else {
                 try (PDDocument doc = PDDocument.load(file.toFile())) {
                     PDFTextStripper stripper = new PDFTextStripper();
@@ -250,6 +267,32 @@ public class FileRenamer {
         if (nome.length() < 2) return "";
 
         return "RFB_" + nome;
+    }
+    // ======================================================
+    // Trabalhista
+    // ======================================================
+    private static String gerarNomeTrabalhista(String texto) {
+
+        texto = texto.toUpperCase();
+
+        Matcher m = TRAB_NOME.matcher(texto);
+        if (!m.find()) return "";
+
+        String nome = m.group(1);
+
+        nome = LIMPEZA_TRABALHISTA.matcher(nome).replaceAll(" ");
+        nome = nome.replaceAll("\\s{2,}", " ").trim();
+
+        nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "")
+                .replaceAll("[^A-Z0-9 ]", " ")
+                .replaceAll("\\s{2,}", " ")
+                .trim()
+                .replace(" ", "_");
+
+        if (nome.length() < 3) return "";
+
+        return "TRAB_" + nome;
     }
 
 
