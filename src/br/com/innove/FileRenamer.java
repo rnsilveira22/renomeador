@@ -24,7 +24,17 @@ public class FileRenamer {
     );
 
     private static final Pattern LIMPEZA_NOME = Pattern.compile(
-            "\\bCONDOMINIO DO EDIFICIO\\b|\\bCONDOMINIO\\b|\\bRESIDENCIAL\\b|\\bEDIFICIO\\b",
+            "\\bCONDOMINIO DO EDIFICIO\\b|" +
+                    "\\bCONDOMINIO\\b|" +
+                    "\\bRESIDENCIAL\\b|" +
+                    "\\bEDIFICIO\\b|" +
+                    "\\bED\\.\\b|" +
+                    "\\bRES\\.\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern RFB_NOME = Pattern.compile(
+            "NOME\\s*:\\s*([\\s\\S]*?)\\s*CNPJ\\s*:",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -148,10 +158,22 @@ public class FileRenamer {
         try {
             String novoNome;
 
-            if ("FGTS".equals(tipo)) {
+            if ("CND - Caixa / FGTS".equals(tipo)) {
                 byte[] bytes = Files.readAllBytes(file);
                 String html = new String(bytes, StandardCharsets.UTF_8);
                 novoNome = gerarNomeFgts(html);
+            }
+            else if ("CND - Receita Federal / RFB".equals(tipo)) {
+                try (PDDocument doc = PDDocument.load(file.toFile())) {
+                    PDFTextStripper stripper = new PDFTextStripper();
+                    String texto = stripper.getText(doc);
+
+//                    System.out.println("==== TEXTO PDF RFB ====");
+//                    System.out.println(texto);
+//                    System.out.println("======================");
+                    novoNome = gerarNomeRfb(texto);
+                }
+
             } else {
                 try (PDDocument doc = PDDocument.load(file.toFile())) {
                     PDFTextStripper stripper = new PDFTextStripper();
@@ -201,6 +223,35 @@ public class FileRenamer {
 
         return "FGTS_" + nome;
     }
+    // ======================================================
+    // RFB
+    // ======================================================
+    private static String gerarNomeRfb(String texto) {
+
+        texto = texto.toUpperCase();
+
+        Matcher m = RFB_NOME.matcher(texto);
+        if (!m.find()) return "";
+
+        String nome = m.group(1);
+
+        nome = LIMPEZA_NOME.matcher(nome).replaceAll(" ");
+        nome = nome.replaceAll("\\s{2,}", " ").trim();
+
+        nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "")
+                .replaceAll("[^A-Z0-9 '/`]", " ")
+                .replaceAll("\\s{2,}", " ")
+                .trim()
+                .replace(" ", "_");
+
+        nome = nome.replace("/", "_");
+
+        if (nome.length() < 2) return "";
+
+        return "RFB_" + nome;
+    }
+
 
     // ======================================================
     // EXISTENTE (NFS / CND etc.)

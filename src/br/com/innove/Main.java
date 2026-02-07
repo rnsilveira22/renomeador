@@ -35,9 +35,11 @@ public class Main {
 
         JLabel lblTipo = new JLabel("Tipo:");
         JComboBox<String> comboTipo = new JComboBox<>(new String[]{
-                "NFS",
-                "CND_ESTADUAL",
-                "FGTS"
+                "CND - Estadual",
+                "CND - Caixa / FGTS",
+                "CND - Receita Federal / RFB",
+                "CND - Trabalhista",
+                "NFS"
         });
 
 
@@ -55,8 +57,19 @@ public class Main {
         JButton btnRenomear = new JButton("Iniciar Processo");
         btnRenomear.setPreferredSize(new Dimension(160, 30));
 
-        gbc.gridx = 1; gbc.gridy = 3;
-        painel.add(btnRenomear, gbc);
+        JButton btnNovoProcesso = new JButton("Novo Processo");
+        btnNovoProcesso.setPreferredSize(new Dimension(160, 30));
+        btnNovoProcesso.setEnabled(false);
+
+
+        JPanel painelBotoes = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        painelBotoes.add(btnRenomear);
+        painelBotoes.add(btnNovoProcesso);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        painel.add(painelBotoes, gbc);
+
 
         frame.add(painel, BorderLayout.NORTH);
 
@@ -76,6 +89,8 @@ public class Main {
         btnDestino.addActionListener(e -> escolherPasta(txtDestino));
 
         btnRenomear.addActionListener(e -> {
+            btnRenomear.setEnabled(false);
+            btnNovoProcesso.setEnabled(false);
 
             String origem = txtOrigem.getText().trim();
             String destino = txtDestino.getText().trim();
@@ -110,10 +125,27 @@ public class Main {
                     log(" - " + erro);
                 }
             }
+            btnNovoProcesso.setEnabled(true);
 
             log("\nProcesso concluído.\n");
 
         });
+
+        btnNovoProcesso.addActionListener(e -> {
+
+            txtOrigem.setText("");
+            txtDestino.setText("");
+            comboTipo.setSelectedIndex(0);
+
+            barra.setValue(0);
+            logArea.setText("");
+
+            btnRenomear.setEnabled(true);
+            btnNovoProcesso.setEnabled(false);
+
+            txtOrigem.requestFocus();
+        });
+
 
         frame.setVisible(true);
     }
