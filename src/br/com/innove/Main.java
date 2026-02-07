@@ -3,6 +3,7 @@ package br.com.innove;
 import javax.swing.*;
 import java.awt.*;
 import java.nio.file.*;
+import java.util.Arrays;
 
 public class Main {
 
@@ -34,14 +35,9 @@ public class Main {
         JButton btnDestino = new JButton("Selecionar");
 
         JLabel lblTipo = new JLabel("Tipo:");
-        JComboBox<String> comboTipo = new JComboBox<>(new String[]{
-                "CND - Estadual",
-                "CND - Caixa / FGTS",
-                "CND - Receita Federal / RFB",
-                "CND - Trabalhista",
-                "NFS"
-        });
-
+        JComboBox<String> comboTipo =new JComboBox<>(Arrays.stream(TipoDocumento.values())
+                .map(TipoDocumento::getLabel)
+                .toArray(String[]::new));
 
         gbc.gridx = 0; gbc.gridy = 0; painel.add(lblOrigem, gbc);
         gbc.gridx = 1; painel.add(txtOrigem, gbc);

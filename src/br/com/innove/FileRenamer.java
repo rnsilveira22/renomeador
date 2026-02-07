@@ -33,7 +33,18 @@ public class FileRenamer {
             Pattern.CASE_INSENSITIVE
     );
 
-    private static final Pattern LIMPEZA_TRABALHISTA = Pattern.compile(
+    private static final Pattern LIMPEZA_RFB = Pattern.compile(
+            "\\bCONDOMINIO DO EDIFICIO\\b|" +
+                    "\\bCONDOMINIO\\b|" +
+                    "\\bRESIDENCIAL\\b|" +
+                    "\\bEDIFICIO\\b|" +
+                    "\\bED\\.\\b|" +
+                    "\\bRES\\.\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+
+    private static final Pattern LIMPEZA_TRAB = Pattern.compile(
             "\\bCONDOMINIO\\b|" +
                     "\\bRESIDENCIAL\\b|" +
                     "\\bEDIFICIO\\b|" +
@@ -43,12 +54,7 @@ public class FileRenamer {
             Pattern.CASE_INSENSITIVE
     );
 
-    private static final Pattern TRAB_NOME = Pattern.compile(
-            "NOME\\s*:\\s*([\\s\\S]*?)\\s*CNPJ\\s*:",
-            Pattern.CASE_INSENSITIVE
-    );
-
-    private static final Pattern RFB_NOME = Pattern.compile(
+    private static final Pattern FEDERAL_NOME = Pattern.compile(
             "NOME\\s*:\\s*([\\s\\S]*?)\\s*CNPJ\\s*:",
             Pattern.CASE_INSENSITIVE
     );
@@ -171,37 +177,54 @@ public class FileRenamer {
     ) {
 
         try {
-            String novoNome;
+            String novoNome = "";
 
-            if ("CND - Caixa / FGTS".equals(tipo)) {
-                byte[] bytes = Files.readAllBytes(file);
-                String html = new String(bytes, StandardCharsets.UTF_8);
-                novoNome = gerarNomeFgts(html);
-            }
-            else if ("CND - Receita Federal / RFB".equals(tipo)) {
-                try (PDDocument doc = PDDocument.load(file.toFile())) {
-                    PDFTextStripper stripper = new PDFTextStripper();
-                    String texto = stripper.getText(doc);
-                    novoNome = gerarNomeRfb(texto);
+            TipoDocumento tipoDoc = TipoDocumento.fromLabel(tipo);
+
+            switch (tipoDoc) {
+
+                case FGTS: {
+                    byte[] bytes = Files.readAllBytes(file);
+                    String html = new String(bytes, StandardCharsets.UTF_8);
+                    novoNome = gerarNomeFgts(html);
+                    break;
                 }
-            } else if ("CND - Trabalhista".equals(tipo)) {
 
+                case RFB:
+                case TRABALHISTA: {
                     try (PDDocument doc = PDDocument.load(file.toFile())) {
                         PDFTextStripper stripper = new PDFTextStripper();
                         String texto = stripper.getText(doc);
-                        novoNome = gerarNomeTrabalhista(texto);
+
+                        if (tipoDoc == TipoDocumento.RFB) {
+                            novoNome = extrairNomeFederal(
+                                    texto,
+                                    LIMPEZA_RFB,
+                                    tipoDoc.getPrefixo()
+                            );
+                        } else {
+                            novoNome = extrairNomeFederal(
+                                    texto,
+                                    LIMPEZA_TRAB,
+                                    tipoDoc.getPrefixo()
+                            );
+                        }
                     }
-            } else {
-                try (PDDocument doc = PDDocument.load(file.toFile())) {
-                    PDFTextStripper stripper = new PDFTextStripper();
-                    String texto = stripper.getText(doc);
-                    novoNome = gerarNome(texto, tipo);
+                    break;
+                }
+
+                default: {
+                    // Tipos antigos (estadual, NFS, etc.)
+                    try (PDDocument doc = PDDocument.load(file.toFile())) {
+                        PDFTextStripper stripper = new PDFTextStripper();
+                        String texto = stripper.getText(doc);
+                        novoNome = gerarNome(texto, tipo);
+                    }
                 }
             }
 
-            if (novoNome.isEmpty()) {
-                r.erros.add(file.getFileName() + " — não identificado");
-                return false;
+            if (novoNome == null || novoNome.isEmpty()) {
+                throw new RuntimeException("não identificado");
             }
 
             Files.createDirectories(destino);
@@ -241,61 +264,36 @@ public class FileRenamer {
         return "FGTS_" + nome;
     }
     // ======================================================
-    // RFB
+    // RFB + Trabalhista
     // ======================================================
-    private static String gerarNomeRfb(String texto) {
+    private static String extrairNomeFederal(
+            String texto,
+            Pattern limpeza,
+            String prefixo
+    ) {
 
         texto = texto.toUpperCase();
 
-        Matcher m = RFB_NOME.matcher(texto);
+        Matcher m = FEDERAL_NOME.matcher(texto);
         if (!m.find()) return "";
 
         String nome = m.group(1);
 
-        nome = LIMPEZA_NOME.matcher(nome).replaceAll(" ");
+        nome = limpeza.matcher(nome).replaceAll(" ");
         nome = nome.replaceAll("\\s{2,}", " ").trim();
 
         nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
                 .replaceAll("[^\\p{ASCII}]", "")
-                .replaceAll("[^A-Z0-9 '/`]", " ")
+                .replaceAll("[^A-Z0-9 ']", " ")
                 .replaceAll("\\s{2,}", " ")
                 .trim()
-                .replace(" ", "_");
-
-        nome = nome.replace("/", "_");
+                .replace(" ", "_")
+                .replace("/", "_");
 
         if (nome.length() < 2) return "";
 
-        return "RFB_" + nome;
+        return prefixo + nome;
     }
-    // ======================================================
-    // Trabalhista
-    // ======================================================
-    private static String gerarNomeTrabalhista(String texto) {
-
-        texto = texto.toUpperCase();
-
-        Matcher m = TRAB_NOME.matcher(texto);
-        if (!m.find()) return "";
-
-        String nome = m.group(1);
-
-        nome = LIMPEZA_TRABALHISTA.matcher(nome).replaceAll(" ");
-        nome = nome.replaceAll("\\s{2,}", " ").trim();
-
-        nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
-                .replaceAll("[^\\p{ASCII}]", "")
-                .replaceAll("[^A-Z0-9 ]", " ")
-                .replaceAll("\\s{2,}", " ")
-                .trim()
-                .replace(" ", "_");
-
-        if (nome.length() < 3) return "";
-
-        return "TRAB_" + nome;
-    }
-
-
     // ======================================================
     // EXISTENTE (NFS / CND etc.)
     // ======================================================
