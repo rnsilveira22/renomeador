@@ -87,7 +87,7 @@ public class FileRenamer {
             r.totalEncontrados = (int) Files.walk(origem)
                     .filter(f ->
                             f.toString().toLowerCase().endsWith(".pdf") ||
-                                    ("FGTS".equals(tipo) && f.toString().toLowerCase().endsWith(".html"))
+                                    ("CND - Caixa / FGTS".equals(tipo) && f.toString().toLowerCase().endsWith(".html"))
                     )
                     .count();
         } catch (Exception e) {
@@ -110,12 +110,12 @@ public class FileRenamer {
                         return FileVisitResult.CONTINUE;
                     }
 
-                    if ("FGTS".equals(tipo) && !isHtml) {
+                    if ("CND - Caixa / FGTS".equals(tipo) && !isHtml) {
                         r.ignorados++;
                         return FileVisitResult.CONTINUE;
                     }
 
-                    if (!"FGTS".equals(tipo) && !isPdf) {
+                    if (!"CND - Caixa / FGTS".equals(tipo) && !isPdf) {
                         r.ignorados++;
                         return FileVisitResult.CONTINUE;
                     }
