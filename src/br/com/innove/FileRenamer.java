@@ -220,8 +220,6 @@ public class FileRenamer {
                     byte[] bytes = Files.readAllBytes(file);
                     String html = new String(bytes, StandardCharsets.UTF_8);
 
-                    log.accept("DEBUG → tamanho texto: " + html.length());
-
                     novoNome = gerarNomeFgts(html);
                     break;
                 }
