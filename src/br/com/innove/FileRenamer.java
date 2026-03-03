@@ -219,6 +219,9 @@ public class FileRenamer {
                 case FGTS: {
                     byte[] bytes = Files.readAllBytes(file);
                     String html = new String(bytes, StandardCharsets.UTF_8);
+
+                    log.accept("DEBUG → tamanho texto: " + html.length());
+
                     novoNome = gerarNomeFgts(html);
                     break;
                 }
@@ -276,17 +279,24 @@ public class FileRenamer {
                 }
             }
 
-            if (novoNome == null || novoNome.isEmpty()) {
-                throw new RuntimeException("não identificado");
+
+            if (novoNome.isEmpty()) {
+                log.accept("Ignorado → nome não identificado");
+                return false;
             }
 
             Files.createDirectories(destino);
-            String extensao = tipo.equals("FGTS") ? ".html" : ".pdf";
+            String nomeOriginal = file.getFileName().toString();
+            int idx = nomeOriginal.lastIndexOf(".");
+            String extensao = idx > 0 ? nomeOriginal.substring(idx) : "";
+
             Path novo = destino.resolve(novoNome + extensao);
 
-            if (!Files.exists(novo)) {
-                Files.copy(file, novo, StandardCopyOption.COPY_ATTRIBUTES);
-            }
+            Files.move(
+                    file,
+                    novo,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
 
             log.accept("Renomeado → " + novo.getFileName());
             return true;
