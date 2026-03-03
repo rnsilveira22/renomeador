@@ -64,6 +64,34 @@ public class FileRenamer {
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
 
+    // ======================================================
+    // REGEX NFS - CORRIGIDOS
+    // ======================================================
+    // Número da NF: aceita "N°.: 29" ou "Nº: 29" ou variações
+    private static final Pattern NFS_NUMERO = Pattern.compile(
+            "N[°º]\\.?\\s*:\\s*(\\d+)",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    // Data de emissão: mais flexível para lidar com quebras de linha
+    private static final Pattern NFS_DATA = Pattern.compile(
+            "DATA\\s+DE\\s+EMISS[ÃA]O\\s*[\\n\\r\\s]*(\\d{2}/\\d{2}/\\d{4})",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    // Prestador: captura após RAZÃO SOCIAL, ignorando NOME FANTASIA se presente
+    // Pega apenas a primeira linha válida (nome do prestador)
+    private static final Pattern NFS_PRESTADOR = Pattern.compile(
+            "PRESTADOR\\s+DO\\s+SERVI[ÇC]O\\s+RAZ[ÃA]O\\s+SOCIAL\\s+(?:NOME\\s+FANTASIA\\s+)?([A-Z][A-Z\\s]+?)(?:\\s+\\d|\\s+CNPJ|\\s+NOME\\s+FANTASIA|$)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    // Tomador: captura após RAZÃO SOCIAL até CNPJ ou quebra de linha
+    private static final Pattern NFS_TOMADOR = Pattern.compile(
+            "TOMADOR\\s+DO\\s+SERVI[ÇC]O\\s+RAZ[ÃA]O\\s+SOCIAL\\s+([A-Z][A-Z\\s]+?)(?:\\s+CNPJ|\\s+\\d{2}\\.\\d{3}|\\n|\\r|$)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
     public interface ProgressCallback {
         void update(int percent);
     }
@@ -229,7 +257,15 @@ public class FileRenamer {
                     }
                     break;
                 }
+                case NFS: {
+                    try (PDDocument doc = PDDocument.load(file.toFile())) {
+                        PDFTextStripper stripper = new PDFTextStripper();
+                        String texto = stripper.getText(doc);
 
+                        novoNome = gerarNomeNfs(texto, tipoDoc.getPrefixo());
+                    }
+                    break;
+                }
                 default: {
                     // Tipos antigos (estadual, NFS, etc.)
                     try (PDDocument doc = PDDocument.load(file.toFile())) {
@@ -338,8 +374,102 @@ public class FileRenamer {
         return prefixo + nome;
     }
     // ======================================================
-    // EXISTENTE (NFS / CND etc.)
+    // NFS - Nota Fiscal - CORRIGIDO
     // ======================================================
+
+    private static String gerarNomeNfs(String texto, String prefixo) {
+        // Normaliza o texto para NFC para resolver problemas de Unicode (Ç vs C+cedilla)
+        texto = Normalizer.normalize(texto.toUpperCase(), Normalizer.Form.NFC);
+
+        Matcher mNumero = NFS_NUMERO.matcher(texto);
+        Matcher mData = NFS_DATA.matcher(texto);
+        Matcher mPrestador = NFS_PRESTADOR.matcher(texto);
+        Matcher mTomador = NFS_TOMADOR.matcher(texto);
+
+        // Debug: log para verificar o que foi encontrado
+        System.out.println("NFS_NUMERO encontrado: " + mNumero.find());
+        System.out.println("NFS_DATA encontrado: " + mData.find());
+        System.out.println("NFS_PRESTADOR encontrado: " + mPrestador.find());
+        System.out.println("NFS_TOMADOR encontrado: " + mTomador.find());
+
+        // Re-iniciar matchers após find()
+        mNumero.reset();
+        mData.reset();
+        mPrestador.reset();
+        mTomador.reset();
+
+        if (!mNumero.find()) {
+            System.err.println("NFS: Número não encontrado");
+            return "";
+        }
+        if (!mData.find()) {
+            System.err.println("NFS: Data não encontrada");
+            return "";
+        }
+        if (!mPrestador.find()) {
+            System.err.println("NFS: Prestador não encontrado");
+            return "";
+        }
+        if (!mTomador.find()) {
+            System.err.println("NFS: Tomador não encontrado");
+            return "";
+        }
+
+        String numero = mNumero.group(1).trim();
+        String data = mData.group(1).trim().replace("/", "-");
+
+        String prestadorRaw = mPrestador.group(1).trim();
+        String tomadorRaw = mTomador.group(1).trim();
+
+        // Limpar e normalizar nomes
+        String prestador = limparNomeNfs(prestadorRaw);
+        String tomador = limparNomeNfs(tomadorRaw);
+
+        // Se após limpeza algum nome ficar vazio, usar valor raw truncado
+        if (prestador.isEmpty()) {
+            prestador = limparNomeNfs(prestadorRaw.replaceAll("[^A-Z\\s]", ""));
+        }
+        if (tomador.isEmpty()) {
+            tomador = limparNomeNfs(tomadorRaw.replaceAll("[^A-Z\\s]", ""));
+        }
+
+        // Formato: NFS_TOMADOR_NUMERO_PRESTADOR_DATA
+        return prefixo + tomador + "_" + numero + "_" + prestador + "_" + data;
+    }
+
+    private static String limparNomeNfs(String nome) {
+        if (nome == null || nome.isEmpty()) {
+            return "";
+        }
+
+        // Remove termos comuns de condomínios
+        nome = LIMPEZA_NOME.matcher(nome).replaceAll(" ");
+
+        // Remove números de documento (CPF/CNPJ) que possam ter sido capturados
+        nome = nome.replaceAll("\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}", "");
+        nome = nome.replaceAll("\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}", "");
+        nome = nome.replaceAll("\\d{11,14}", "");
+
+        // Normaliza espaços
+        nome = nome.replaceAll("\\s{2,}", " ").trim();
+
+        // Remove acentos e caracteres especiais
+        nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "");
+
+        // Mantém apenas letras, números e espaços
+        nome = nome.replaceAll("[^A-Z0-9 ]", "");
+
+        // Normaliza espaços novamente
+        nome = nome.replaceAll("\\s{2,}", " ").trim();
+
+        // Substitui espaços por underscore
+        nome = nome.replace(" ", "_");
+
+        return nome;
+    }
+
+
     private static String gerarNome(String texto, String tipo) {
         texto = texto.toUpperCase();
         // mantém exatamente o que já existia
