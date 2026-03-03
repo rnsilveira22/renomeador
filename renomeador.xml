@@ -15,7 +15,10 @@
     <classPath>
         <mainClass>br.com.innove.Main</mainClass>
         <cp>renomeador.jar</cp>
-        <cp>libs\*.jar</cp>
+        <cp>libs/pdfbox-app-3.0.2.jar</cp>
+        <cp>libs/commons-logging-1.2.jar</cp>
+        <cp>libs/fontbox-2.0.35.jar</cp>
+        <cp>libs/xmpbox-2.0.35.jar</cp>
     </classPath>
 
     <jre>
