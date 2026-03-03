@@ -6,7 +6,7 @@ public enum TipoDocumento {
     ESTADUAL("CND - Estadual", "ESTAD_"),
     RFB("CND - Receita Federal / RFB", "RFB_"),
     TRABALHISTA("CND - Trabalhista", "TRAB_"),
-    NFS("NFS", "NFS_");
+    NFS("Nota Fiscal Eletronica", "NFS_");
 
     private final String label;
     private final String prefixo;

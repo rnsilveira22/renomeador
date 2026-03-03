@@ -59,6 +59,11 @@ public class FileRenamer {
             Pattern.CASE_INSENSITIVE
     );
 
+    private static final Pattern ESTADUAL_NOME = Pattern.compile(
+            "NOME \\(RAZ[ÃA]O SOCIAL\\)\\s*:\\s*(.*?)\\s*CNPJ/CPF",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
     public interface ProgressCallback {
         void update(int percent);
     }
@@ -212,6 +217,18 @@ public class FileRenamer {
                     }
                     break;
                 }
+                case ESTADUAL: {
+                    try (PDDocument doc = PDDocument.load(file.toFile())) {
+                        PDFTextStripper stripper = new PDFTextStripper();
+                        String texto = stripper.getText(doc);
+
+                        novoNome = gerarNomeEstadual(
+                                texto,
+                                tipoDoc.getPrefixo()
+                        );
+                    }
+                    break;
+                }
 
                 default: {
                     // Tipos antigos (estadual, NFS, etc.)
@@ -289,6 +306,32 @@ public class FileRenamer {
                 .trim()
                 .replace(" ", "_")
                 .replace("/", "_");
+
+        if (nome.length() < 2) return "";
+
+        return prefixo + nome;
+    }
+    // ======================================================
+    // CND - ESTADUAL
+    // ======================================================
+    private static String gerarNomeEstadual(String texto, String prefixo) {
+
+        texto = texto.toUpperCase();
+
+        Matcher m = ESTADUAL_NOME.matcher(texto);
+        if (!m.find()) return "";
+
+        String nome = m.group(1);
+
+        nome = LIMPEZA_NOME.matcher(nome).replaceAll(" ");
+        nome = nome.replaceAll("\\s{2,}", " ").trim();
+
+        nome = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "")
+                .replaceAll("[^A-Z0-9 ]", "")
+                .replaceAll("\\s{2,}", " ")
+                .trim()
+                .replace(" ", "_");
 
         if (nome.length() < 2) return "";
 
